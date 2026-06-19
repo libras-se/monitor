@@ -394,6 +394,12 @@ export function aggregateOverall(components: ComponentCheck[]): CheckStatus {
 	return "unknown";
 }
 
+export function visibleComponents(components: ComponentCheck[]): ComponentCheck[] {
+	return components.filter(
+		(c) => c.group !== "infra" || c.status !== "disabled",
+	);
+}
+
 export async function runAllProbes(): Promise<ComponentCheck[]> {
 	return Promise.all([
 		probeApiHealth(),

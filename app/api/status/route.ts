@@ -1,6 +1,7 @@
 import { authorizeRequest } from "@/lib/auth";
-import { getStatusPayload } from "@/lib/status";
 import { getConfig } from "@/lib/config";
+import { visibleComponents } from "@/lib/probes";
+import { getStatusPayload } from "@/lib/status";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
 
 	return Response.json({
 		...snapshot,
+		components: visibleComponents(snapshot.components),
 		incidents,
 		meta: {
 			title: config.MONITOR_TITLE,
