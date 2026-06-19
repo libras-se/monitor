@@ -19,7 +19,7 @@ export async function collectStatusWithAlerts(): Promise<{
 	slackSent: boolean;
 }> {
 	const snapshot = await collectStatus();
-	const incidents = await recordSnapshot(snapshot);
+	const incidents = recordSnapshot(snapshot);
 
 	let slackSent = false;
 	if (incidents.length > 0) {
@@ -43,7 +43,7 @@ export async function getStatusPayload(): Promise<{
 	incidents: IncidentEvent[];
 }> {
 	const snapshot = await collectStatus();
-	await recordSnapshot(snapshot);
-	const incidents = await getIncidents();
+	recordSnapshot(snapshot);
+	const incidents = getIncidents();
 	return { snapshot, incidents };
 }

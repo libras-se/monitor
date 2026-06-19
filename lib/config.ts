@@ -26,7 +26,6 @@ const envSchema = z.object({
 		.default("Monitoramento em tempo real dos serviços Libras"),
 	MONITOR_PUBLIC_URL: optionalUrl(),
 	MONITOR_API_KEY: optionalString(),
-	MONITOR_STATE_PATH: z.string().default(".monitor-state.json"),
 	POLL_INTERVAL_MS: z.coerce.number().default(30_000),
 	REQUEST_TIMEOUT_MS: z.coerce.number().default(8_000),
 

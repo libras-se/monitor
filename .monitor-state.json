@@ -1,0 +1,168 @@
+{
+  "lastSnapshot": {
+    "overall": "down",
+    "components": [
+      {
+        "id": "api-health",
+        "name": "API (liveness)",
+        "group": "apps",
+        "status": "operational",
+        "latencyMs": 3,
+        "message": "Respondendo",
+        "details": {
+          "success": true,
+          "status": "ok",
+          "timestamp": "2026-06-19T17:39:52.910Z"
+        },
+        "checkedAt": "2026-06-19T17:39:52.910Z"
+      },
+      {
+        "id": "api-ready",
+        "name": "PostgreSQL (via API /ready)",
+        "group": "infra",
+        "status": "operational",
+        "latencyMs": 2,
+        "message": "Banco acessível",
+        "details": {
+          "success": true,
+          "status": "ready",
+          "timestamp": "2026-06-19T17:39:52.909Z"
+        },
+        "checkedAt": "2026-06-19T17:39:52.910Z"
+      },
+      {
+        "id": "worker",
+        "name": "Worker",
+        "group": "apps",
+        "status": "down",
+        "latencyMs": null,
+        "message": "Unable to connect. Is the computer able to access the url?",
+        "checkedAt": "2026-06-19T17:39:52.909Z"
+      },
+      {
+        "id": "huet",
+        "name": "Huet",
+        "group": "apps",
+        "status": "down",
+        "latencyMs": null,
+        "message": "Unable to connect. Is the computer able to access the url?",
+        "checkedAt": "2026-06-19T17:39:52.909Z"
+      },
+      {
+        "id": "tils",
+        "name": "Tils",
+        "group": "apps",
+        "status": "down",
+        "latencyMs": null,
+        "message": "Unable to connect. Is the computer able to access the url?",
+        "checkedAt": "2026-06-19T17:39:52.909Z"
+      },
+      {
+        "id": "rabbitmq",
+        "name": "RabbitMQ (management)",
+        "group": "infra",
+        "status": "operational",
+        "latencyMs": 4,
+        "message": "Broker acessível",
+        "details": {
+          "overview": true
+        },
+        "checkedAt": "2026-06-19T17:39:52.912Z"
+      },
+      {
+        "id": "storage",
+        "name": "Object storage (MinIO/S3)",
+        "group": "infra",
+        "status": "operational",
+        "latencyMs": 1,
+        "message": "Storage live",
+        "checkedAt": "2026-06-19T17:39:52.910Z"
+      },
+      {
+        "id": "redis",
+        "name": "Redis",
+        "group": "infra",
+        "status": "disabled",
+        "latencyMs": null,
+        "message": "Não configurado",
+        "checkedAt": "2026-06-19T17:39:52.908Z"
+      },
+      {
+        "id": "database-direct",
+        "name": "PostgreSQL (direto)",
+        "group": "infra",
+        "status": "down",
+        "latencyMs": null,
+        "message": "Connection closed",
+        "checkedAt": "2026-06-19T17:39:52.909Z"
+      }
+    ],
+    "checkedAt": "2026-06-19T17:39:52.912Z"
+  },
+  "incidents": [
+    {
+      "id": "database-direct-1781888923966",
+      "at": "2026-06-19T17:08:43.959Z",
+      "componentId": "database-direct",
+      "componentName": "PostgreSQL (direto)",
+      "from": "operational",
+      "to": "down",
+      "message": "Connection closed"
+    },
+    {
+      "id": "huet-1781888923966",
+      "at": "2026-06-19T17:08:43.959Z",
+      "componentId": "huet",
+      "componentName": "Huet",
+      "from": "operational",
+      "to": "down",
+      "message": "Unable to connect. Is the computer able to access the url?"
+    },
+    {
+      "id": "database-direct-1779490297418",
+      "at": "2026-05-22T22:51:37.417Z",
+      "componentId": "database-direct",
+      "componentName": "PostgreSQL (direto)",
+      "from": "down",
+      "to": "operational",
+      "message": "Conexão direta ok"
+    },
+    {
+      "id": "database-direct-1779488146741",
+      "at": "2026-05-22T22:15:46.740Z",
+      "componentId": "database-direct",
+      "componentName": "PostgreSQL (direto)",
+      "from": "operational",
+      "to": "down",
+      "message": "sorry, too many clients already"
+    },
+    {
+      "id": "database-direct-1779487868696",
+      "at": "2026-05-22T22:11:08.696Z",
+      "componentId": "database-direct",
+      "componentName": "PostgreSQL (direto)",
+      "from": "down",
+      "to": "operational",
+      "message": "Conexão direta ok"
+    },
+    {
+      "id": "database-direct-1779486974998",
+      "at": "2026-05-22T21:56:14.998Z",
+      "componentId": "database-direct",
+      "componentName": "PostgreSQL (direto)",
+      "from": "operational",
+      "to": "down",
+      "message": "sorry, too many clients already"
+    }
+  ],
+  "componentStatus": {
+    "api-health": "operational",
+    "api-ready": "operational",
+    "worker": "down",
+    "huet": "down",
+    "tils": "down",
+    "rabbitmq": "operational",
+    "storage": "operational",
+    "database-direct": "down"
+  }
+}

@@ -32,9 +32,6 @@ yarn-error.log*
 .env
 .env*.local
 
-# monitor state
-.monitor-state.json
-
 # vercel
 .vercel
 
