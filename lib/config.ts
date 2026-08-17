@@ -31,9 +31,7 @@ const envSchema = z.object({
 
 	API_BASE_URL: optionalUrl(),
 	API_HEALTH_PATH: z.string().default("/health"),
-	API_READY_PATH: z.string().default("/ready"),
-
-	WORKER_HEALTH_URL: optionalUrl(),
+	API_STATUS_PATH: z.string().default("/status"),
 
 	HUET_BASE_URL: optionalUrl(),
 	HUET_HEALTH_PATH: z.string().default("/health.txt"),
@@ -41,15 +39,7 @@ const envSchema = z.object({
 	TILS_BASE_URL: optionalUrl(),
 	TILS_HEALTH_PATH: z.string().default("/"),
 
-	RABBITMQ_MANAGEMENT_URL: optionalUrl(),
-	RABBITMQ_MANAGEMENT_USER: optionalString(),
-	RABBITMQ_MANAGEMENT_PASSWORD: optionalString(),
-
-	STORAGE_HEALTH_URL: optionalUrl(),
-
 	REDIS_URL: optionalString(),
-
-	DATABASE_URL: optionalString(),
 
 	SLACK_ALERTS_ENABLED: bool,
 	SLACK_WEBHOOK_URL: optionalUrl(),

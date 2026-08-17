@@ -1,6 +1,37 @@
 import { getConfig, isServiceEnabled } from "@/lib/config";
 import type { CheckStatus, ComponentCheck, ComponentGroup } from "@/lib/types";
 
+type ApiDependencyStatus = "operational" | "degraded" | "down" | "disabled";
+
+type ApiDependencyCheck = {
+	status: ApiDependencyStatus;
+	latencyMs: number | null;
+	message: string;
+};
+
+type ApiStatusPayload = {
+	success?: boolean;
+	status?: string;
+	checks?: {
+		database?: ApiDependencyCheck;
+		rabbitmq?: ApiDependencyCheck;
+		storage?: ApiDependencyCheck;
+		worker?: ApiDependencyCheck;
+	};
+};
+
+const API_DEPENDENCIES: {
+	key: keyof NonNullable<ApiStatusPayload["checks"]>;
+	id: string;
+	name: string;
+	group: ComponentGroup;
+}[] = [
+	{ key: "database", id: "database", name: "PostgreSQL", group: "infra" },
+	{ key: "rabbitmq", id: "rabbitmq", name: "RabbitMQ", group: "infra" },
+	{ key: "storage", id: "storage", name: "Object storage (MinIO/S3)", group: "infra" },
+	{ key: "worker", id: "worker", name: "Worker", group: "apps" },
+];
+
 function nowIso() {
 	return new Date().toISOString();
 }
@@ -76,6 +107,42 @@ function disabledCheck(
 	return makeCheck(id, name, group, "disabled", null, "Não configurado");
 }
 
+function isApiDependencyStatus(value: unknown): value is ApiDependencyStatus {
+	return (
+		value === "operational" ||
+		value === "degraded" ||
+		value === "down" ||
+		value === "disabled"
+	);
+}
+
+export function componentsFromApiStatus(
+	payload: ApiStatusPayload | null,
+	fallbackMessage: string,
+): ComponentCheck[] {
+	return API_DEPENDENCIES.map((meta) => {
+		const check = payload?.checks?.[meta.key];
+		if (!check || !isApiDependencyStatus(check.status)) {
+			return makeCheck(
+				meta.id,
+				meta.name,
+				meta.group,
+				"unknown",
+				null,
+				fallbackMessage,
+			);
+		}
+		return makeCheck(
+			meta.id,
+			meta.name,
+			meta.group,
+			check.status,
+			check.latencyMs,
+			check.message,
+		);
+	});
+}
+
 export async function probeApiHealth(): Promise<ComponentCheck> {
 	const config = getConfig();
 	if (!isServiceEnabled(config.API_BASE_URL)) {
@@ -108,82 +175,30 @@ export async function probeApiHealth(): Promise<ComponentCheck> {
 	}
 }
 
-export async function probeApiReady(): Promise<ComponentCheck> {
+export async function probeApiStatus(): Promise<ComponentCheck[]> {
 	const config = getConfig();
 	if (!isServiceEnabled(config.API_BASE_URL)) {
-		return disabledCheck("api-ready", "API (readiness / DB)", "infra");
+		return API_DEPENDENCIES.map((meta) =>
+			disabledCheck(meta.id, meta.name, meta.group),
+		);
 	}
-	const url = new URL(config.API_READY_PATH, config.API_BASE_URL).toString();
+	const url = new URL(config.API_STATUS_PATH, config.API_BASE_URL).toString();
 	try {
-		const { ok, status, body, latencyMs } = await fetchProbe(url);
-		const payload = body as { success?: boolean; status?: string } | null;
-		const ready =
-			ok && payload?.success === true && payload?.status === "ready";
-		const degraded =
-			ok && payload?.status === "ready" && payload?.success !== true;
-		return makeCheck(
-			"api-ready",
-			"PostgreSQL (via API /ready)",
-			"infra",
-			statusFromHttp(ready || ok, degraded || (!ready && ok)),
-			latencyMs,
-			ready
-				? "Banco acessível"
-				: ok
-					? "API up, readiness incerto"
-					: `Indisponível (HTTP ${status})`,
-			typeof body === "object" ? (body as Record<string, unknown>) : undefined,
-		);
+		const { ok, status, body } = await fetchProbe(url);
+		const payload = (typeof body === "object" && body !== null
+			? body
+			: null) as ApiStatusPayload | null;
+		if (!ok || payload?.success !== true) {
+			return componentsFromApiStatus(
+				payload,
+				ok ? "Resposta de /status incompleta" : `API /status indisponível (HTTP ${status})`,
+			);
+		}
+		return componentsFromApiStatus(payload, "Resposta de /status incompleta");
 	} catch (err) {
-		return makeCheck(
-			"api-ready",
-			"PostgreSQL (via API /ready)",
-			"infra",
-			"down",
-			null,
-			err instanceof Error ? err.message : "Falha na requisição",
-		);
-	}
-}
-
-export async function probeWorker(): Promise<ComponentCheck> {
-	const config = getConfig();
-	if (!isServiceEnabled(config.WORKER_HEALTH_URL)) {
-		return disabledCheck("worker", "Worker", "apps");
-	}
-	try {
-		const { ok, status, body, latencyMs } = await fetchProbe(
-			config.WORKER_HEALTH_URL!,
-		);
-		const payload = body as { ok?: boolean; rabbit?: boolean } | null;
-		const workerOk = ok && payload?.ok === true;
-		const rabbitOk = payload?.rabbit === true;
-		const checkStatus: CheckStatus = workerOk
-			? rabbitOk
-				? "operational"
-				: "degraded"
-			: "down";
-		return makeCheck(
-			"worker",
-			"Worker",
-			"apps",
-			checkStatus,
-			latencyMs,
-			workerOk
-				? rabbitOk
-					? "Processo e fila RabbitMQ"
-					: "Processo ok, RabbitMQ desconectado"
-				: `HTTP ${status}`,
-			typeof body === "object" ? (body as Record<string, unknown>) : undefined,
-		);
-	} catch (err) {
-		return makeCheck(
-			"worker",
-			"Worker",
-			"apps",
-			"down",
-			null,
-			err instanceof Error ? err.message : "Falha na requisição",
+		const message = err instanceof Error ? err.message : "Falha na requisição";
+		return API_DEPENDENCIES.map((meta) =>
+			makeCheck(meta.id, meta.name, meta.group, "down", null, message),
 		);
 	}
 }
@@ -246,68 +261,6 @@ export async function probeTils(): Promise<ComponentCheck> {
 	}
 }
 
-export async function probeRabbitManagement(): Promise<ComponentCheck> {
-	const config = getConfig();
-	if (!isServiceEnabled(config.RABBITMQ_MANAGEMENT_URL)) {
-		return disabledCheck("rabbitmq", "RabbitMQ (management)", "infra");
-	}
-	const user = config.RABBITMQ_MANAGEMENT_USER ?? "guest";
-	const pass = config.RABBITMQ_MANAGEMENT_PASSWORD ?? "guest";
-	const base = config.RABBITMQ_MANAGEMENT_URL!.replace(/\/$/, "");
-	const url = `${base}/api/overview`;
-	const auth = Buffer.from(`${user}:${pass}`).toString("base64");
-	try {
-		const { ok, latencyMs, body } = await fetchProbe(url, {
-			headers: { Authorization: `Basic ${auth}` },
-		});
-		return makeCheck(
-			"rabbitmq",
-			"RabbitMQ (management)",
-			"infra",
-			statusFromHttp(ok),
-			latencyMs,
-			ok ? "Broker acessível" : "Management API indisponível",
-			typeof body === "object" ? { overview: true } : undefined,
-		);
-	} catch (err) {
-		return makeCheck(
-			"rabbitmq",
-			"RabbitMQ (management)",
-			"infra",
-			"down",
-			null,
-			err instanceof Error ? err.message : "Falha na requisição",
-		);
-	}
-}
-
-export async function probeStorage(): Promise<ComponentCheck> {
-	const config = getConfig();
-	if (!isServiceEnabled(config.STORAGE_HEALTH_URL)) {
-		return disabledCheck("storage", "Object storage (MinIO/S3)", "infra");
-	}
-	try {
-		const { ok, latencyMs } = await fetchProbe(config.STORAGE_HEALTH_URL!);
-		return makeCheck(
-			"storage",
-			"Object storage (MinIO/S3)",
-			"infra",
-			statusFromHttp(ok),
-			latencyMs,
-			ok ? "Storage live" : "Health check falhou",
-		);
-	} catch (err) {
-		return makeCheck(
-			"storage",
-			"Object storage (MinIO/S3)",
-			"infra",
-			"down",
-			null,
-			err instanceof Error ? err.message : "Falha na requisição",
-		);
-	}
-}
-
 export async function probeRedis(): Promise<ComponentCheck> {
 	const config = getConfig();
 	const redisUrl = config.REDIS_URL?.trim();
@@ -343,48 +296,6 @@ export async function probeRedis(): Promise<ComponentCheck> {
 	}
 }
 
-export async function probeDatabaseDirect(): Promise<ComponentCheck> {
-	const config = getConfig();
-	const dbUrl = config.DATABASE_URL?.trim();
-	if (!dbUrl) {
-		return disabledCheck("database-direct", "PostgreSQL (direto)", "infra");
-	}
-	const SQL = (globalThis as { Bun?: { SQL: new (url: string) => { (strings: TemplateStringsArray): Promise<unknown> } } }).Bun?.SQL;
-	if (!SQL) {
-		return makeCheck(
-			"database-direct",
-			"PostgreSQL (direto)",
-			"infra",
-			"unknown",
-			null,
-			"Execute com Bun (`bun run dev`) ou use API /ready",
-		);
-	}
-	const started = performance.now();
-	try {
-		const sql = new SQL(dbUrl);
-		await sql`SELECT 1`;
-		const latencyMs = Math.round(performance.now() - started);
-		return makeCheck(
-			"database-direct",
-			"PostgreSQL (direto)",
-			"infra",
-			"operational",
-			latencyMs,
-			"Conexão direta ok",
-		);
-	} catch (err) {
-		return makeCheck(
-			"database-direct",
-			"PostgreSQL (direto)",
-			"infra",
-			"down",
-			null,
-			err instanceof Error ? err.message : "Falha na conexão",
-		);
-	}
-}
-
 export function aggregateOverall(components: ComponentCheck[]): CheckStatus {
 	const active = components.filter((c) => c.status !== "disabled");
 	if (active.length === 0) return "unknown";
@@ -401,15 +312,12 @@ export function visibleComponents(components: ComponentCheck[]): ComponentCheck[
 }
 
 export async function runAllProbes(): Promise<ComponentCheck[]> {
-	return Promise.all([
+	const [apiHealth, apiStatus, huet, tils, redis] = await Promise.all([
 		probeApiHealth(),
-		probeApiReady(),
-		probeWorker(),
+		probeApiStatus(),
 		probeHuet(),
 		probeTils(),
-		probeRabbitManagement(),
-		probeStorage(),
 		probeRedis(),
-		probeDatabaseDirect(),
 	]);
+	return [apiHealth, ...apiStatus, huet, tils, redis];
 }

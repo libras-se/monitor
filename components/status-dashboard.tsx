@@ -319,7 +319,7 @@ export function StatusDashboard() {
 
 					<footer className="mt-auto border-t border-studio-row-border pt-8 text-center text-[12px] text-studio-ink-faint">
 						Atualização automática a cada {Math.round(pollMs / 1000)}s · API,
-						Huet, Tils, Worker, PostgreSQL, RabbitMQ, Storage
+						Huet, Tils e dependências via API
 					</footer>
 				</main>
 			</div>

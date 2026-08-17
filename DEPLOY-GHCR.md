@@ -33,19 +33,17 @@ Use um **`DOKPLOY_APPLICATION_ID` próprio** desta aplicação (não reutilize o
 ```env
 MONITOR_PUBLIC_URL=https://status.seudominio.com
 API_BASE_URL=https://api.seudominio.com
-API_READY_PATH=/ready
-WORKER_HEALTH_URL=http://libras-worker:9099/health
+API_STATUS_PATH=/status
 HUET_BASE_URL=https://app.seudominio.com
 TILS_BASE_URL=https://admin.seudominio.com
-RABBITMQ_MANAGEMENT_URL=http://rabbitmq:15672
-STORAGE_HEALTH_URL=http://minio:9000/minio/health/live
-DATABASE_URL=postgresql://...
 SLACK_ALERTS_ENABLED=true
 SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 CRON_SECRET=...
 ```
 
-URLs internas no cluster Docker/Swarm: use hostnames dos serviços Dokploy (`libras-api`, `libras-worker`, etc.), não `localhost`.
+PostgreSQL, RabbitMQ, MinIO e Worker são reportados pela API em `GET /status`. O worker responde na fila `libras.worker.health`, sem HTTP direto.
+
+URLs internas no cluster Docker/Swarm: use hostnames dos serviços Dokploy (`libras-api`, etc.), não `localhost`.
 
 6. Healthcheck (dentro do container):
 
