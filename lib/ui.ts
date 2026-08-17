@@ -9,27 +9,35 @@ export const STATUS_LABEL: Record<CheckStatus, string> = {
 };
 
 export const STATUS_COLOR: Record<CheckStatus, string> = {
-	operational: "text-emerald-400",
-	degraded: "text-amber-400",
-	down: "text-rose-400",
-	unknown: "text-zinc-400",
-	disabled: "text-zinc-600",
+	operational: "text-[#0d6a4a]",
+	degraded: "text-[#8a4a12]",
+	down: "text-[#b42318]",
+	unknown: "text-studio-ink-muted",
+	disabled: "text-studio-ink-faint",
 };
 
-export const STATUS_BG: Record<CheckStatus, string> = {
-	operational: "bg-emerald-500/15 border-emerald-500/30",
-	degraded: "bg-amber-500/15 border-amber-500/30",
-	down: "bg-rose-500/15 border-rose-500/30",
-	unknown: "bg-zinc-500/15 border-zinc-500/30",
-	disabled: "bg-zinc-800/40 border-zinc-700/40",
+export const STATUS_BADGE: Record<CheckStatus, string> = {
+	operational: "bg-[#d4f5e8] text-[#0d6a4a]",
+	degraded: "bg-[#fff0e0] text-[#8a4a12]",
+	down: "bg-[#fde8e8] text-[#b42318]",
+	unknown: "bg-studio-chip text-studio-ink-muted",
+	disabled: "bg-studio-chip text-studio-ink-faint",
 };
 
 export const STATUS_DOT: Record<CheckStatus, string> = {
-	operational: "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.6)]",
-	degraded: "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)]",
-	down: "bg-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.6)]",
-	unknown: "bg-zinc-400",
-	disabled: "bg-zinc-600",
+	operational: "bg-[#22c55e]",
+	degraded: "bg-[#e07a2a]",
+	down: "bg-[#ef4444]",
+	unknown: "bg-studio-ink-faint",
+	disabled: "bg-studio-border-muted",
+};
+
+export const STATUS_ICON_WRAP: Record<CheckStatus, string> = {
+	operational: "bg-studio-gradient text-white shadow-studio-glass",
+	degraded: "bg-[#fff0e0] text-[#e07a2a]",
+	down: "bg-[#fde8e8] text-[#b42318]",
+	unknown: "bg-studio-chip text-studio-teal",
+	disabled: "bg-studio-chip text-studio-ink-faint",
 };
 
 export const OVERALL_HEADLINE: Record<CheckStatus, string> = {

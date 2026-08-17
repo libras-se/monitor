@@ -3,11 +3,11 @@
 import {
 	Activity,
 	AlertTriangle,
+	Check,
 	Clock,
+	Database,
 	RefreshCw,
 	Server,
-	Database,
-	Workflow,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type {
@@ -19,9 +19,10 @@ import type {
 } from "@/lib/types";
 import {
 	OVERALL_HEADLINE,
-	STATUS_BG,
+	STATUS_BADGE,
 	STATUS_COLOR,
 	STATUS_DOT,
+	STATUS_ICON_WRAP,
 	STATUS_LABEL,
 } from "@/lib/ui";
 
@@ -53,30 +54,54 @@ function formatTime(iso: string) {
 	});
 }
 
+function BrandMark() {
+	return (
+		<span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-studio-overlay bg-white p-1 shadow-sm">
+			<img
+				src="/logo.png"
+				alt=""
+				className="h-full w-full object-contain"
+				draggable={false}
+			/>
+		</span>
+	);
+}
+
+function StatusBadge({ status }: { status: CheckStatus }) {
+	return (
+		<span
+			className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium leading-snug ${STATUS_BADGE[status]}`}
+		>
+			<span
+				className={`size-2 shrink-0 rounded-full ${STATUS_DOT[status]}`}
+				aria-hidden
+			/>
+			{STATUS_LABEL[status]}
+		</span>
+	);
+}
+
 function ComponentCard({ check }: { check: ComponentCheck }) {
 	const muted = check.status === "disabled";
 	return (
 		<div
-			className={`rounded-2xl border p-4 backdrop-blur-sm transition ${STATUS_BG[check.status]} ${muted ? "opacity-60" : ""}`}
+			className={`studio-glass-card p-5 ${muted ? "opacity-60" : ""}`}
 		>
 			<div className="flex items-start justify-between gap-3">
 				<div className="min-w-0 flex-1">
-					<p className="font-medium text-zinc-100">{check.name}</p>
+					<p className="font-semibold tracking-tight text-studio-ink">
+						{check.name}
+					</p>
 					{check.message ? (
-						<p className="mt-1 text-sm text-zinc-400">{check.message}</p>
+						<p className="mt-1 text-sm text-studio-ink-muted">
+							{check.message}
+						</p>
 					) : null}
 				</div>
 				<div className="flex shrink-0 flex-col items-end gap-2">
-					<span
-						className={`inline-flex items-center gap-2 text-sm font-medium ${STATUS_COLOR[check.status]}`}
-					>
-						<span
-							className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[check.status]}`}
-						/>
-						{STATUS_LABEL[check.status]}
-					</span>
+					<StatusBadge status={check.status} />
 					{check.latencyMs != null ? (
-						<span className="font-mono text-xs text-zinc-500">
+						<span className="font-mono text-[11px] text-studio-ink-faint">
 							{check.latencyMs} ms
 						</span>
 					) : null}
@@ -119,32 +144,26 @@ export function StatusDashboard() {
 
 	const overall = data?.overall ?? "unknown";
 	const groups: ComponentGroup[] = ["apps", "infra"];
+	const OverallIcon = overall === "down" ? AlertTriangle : overall === "operational" ? Check : Activity;
 
 	return (
-		<div className="relative min-h-screen overflow-hidden bg-[#07080c] text-zinc-100">
-			<div
-				className="pointer-events-none absolute inset-0 opacity-40"
-				style={{
-					backgroundImage:
-						"radial-gradient(ellipse 80% 50% at 50% -20%, rgba(56, 189, 248, 0.15), transparent), radial-gradient(ellipse 60% 40% at 100% 50%, rgba(167, 139, 250, 0.08), transparent)",
-				}}
-			/>
-			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-size-[48px_48px]" />
+		<div className="organic-dashboard-shell">
+			<div className="landing-dot-grid pointer-events-none fixed inset-0" aria-hidden />
+			<div className="organic-dashboard-orb organic-dashboard-orb-a opacity-35" aria-hidden />
+			<div className="organic-dashboard-orb organic-dashboard-orb-b opacity-30" aria-hidden />
 
-			<div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
-				<header className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-					<div>
-						<div className="mb-3 inline-flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 text-xs text-zinc-400">
-							<Activity className="h-3.5 w-3.5 text-sky-400" />
-							Status page
+			<div className="relative z-10 mx-auto flex w-full max-w-[60rem] flex-1 flex-col px-5 py-4 sm:px-10 sm:py-5">
+				<header className="mb-8 flex items-center justify-between gap-4 sm:mb-10">
+					<div className="flex items-center gap-2.5">
+						<BrandMark />
+						<div className="min-w-0">
+							<p className="text-[15px] font-semibold tracking-tight text-studio-ink">
+								Libras-se
+							</p>
+							<p className="truncate text-[11px] text-studio-ink-muted">
+								Status dos serviços
+							</p>
 						</div>
-						<h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-							{data?.meta.title ?? "Libras Status"}
-						</h1>
-						<p className="mt-2 max-w-xl text-zinc-400">
-							{data?.meta.tagline ??
-								"Monitoramento em tempo real dos serviços Libras"}
-						</p>
 					</div>
 					<button
 						type="button"
@@ -152,140 +171,157 @@ export function StatusDashboard() {
 							setLoading(true);
 							void fetchStatus();
 						}}
-						className="inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-4 py-2.5 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+						className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-studio-row-border bg-white px-5 text-[13px] font-semibold text-studio-ink shadow-sm ring-1 ring-black/[0.04] transition hover:border-studio-teal/40 hover:bg-studio-teal/[0.06] hover:text-studio-teal-deep"
 					>
 						<RefreshCw
-							className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+							className={`size-4 ${loading ? "animate-spin" : ""}`}
+							strokeWidth={2}
 						/>
 						Atualizar
 					</button>
 				</header>
 
-				<section
-					className={`mb-10 rounded-3xl border p-6 sm:p-8 ${STATUS_BG[overall]}`}
-				>
-					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-						<div className="flex items-center gap-4">
-							<div
-								className={`flex h-14 w-14 items-center justify-center rounded-2xl ${overall === "operational" ? "bg-emerald-500/20" : overall === "down" ? "bg-rose-500/20" : "bg-amber-500/20"}`}
-							>
-								{overall === "down" ? (
-									<AlertTriangle className="h-7 w-7 text-rose-400" />
-								) : (
-									<Workflow className="h-7 w-7 text-sky-400" />
-								)}
-							</div>
-							<div>
-								<p
-									className={`text-2xl font-semibold sm:text-3xl ${STATUS_COLOR[overall]}`}
+				<main className="flex flex-1 flex-col pb-10">
+					<div className="mb-8">
+						<p className="island-kicker">Monitoramento</p>
+						<h1 className="page-section-title mt-2">
+							{data?.meta.title ?? "Libras Status"}
+						</h1>
+						<p className="mt-2.5 max-w-xl text-[14px] leading-relaxed text-studio-ink-muted sm:text-[15px]">
+							{data?.meta.tagline ??
+								"Monitoramento em tempo real dos serviços Libras"}
+						</p>
+					</div>
+
+					<section className="studio-glass-panel mb-10 overflow-hidden p-5 sm:p-7">
+						<div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+							<div className="flex items-center gap-4">
+								<div
+									className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${STATUS_ICON_WRAP[overall]}`}
 								>
-									{OVERALL_HEADLINE[overall]}
-								</p>
-								<p className="mt-1 flex items-center gap-2 text-sm text-zinc-500">
-									<Clock className="h-3.5 w-3.5" />
-									{data?.checkedAt
-										? `Última verificação: ${formatTime(data.checkedAt)}`
-										: "Carregando…"}
-									{lastRefresh ? (
-										<span className="text-zinc-600">
-											· refresh UI {formatTime(lastRefresh.toISOString())}
-										</span>
-									) : null}
-								</p>
+									<OverallIcon className="size-7" strokeWidth={1.75} />
+								</div>
+								<div>
+									<p
+										className={`text-[clamp(1.25rem,2.4vw,1.65rem)] font-extrabold tracking-[-0.03em] ${STATUS_COLOR[overall]}`}
+									>
+										{OVERALL_HEADLINE[overall]}
+									</p>
+									<p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-studio-ink-faint">
+										<Clock className="size-3.5" />
+										{data?.checkedAt
+											? `Última verificação: ${formatTime(data.checkedAt)}`
+											: "Carregando…"}
+										{lastRefresh ? (
+											<span>
+												· UI {formatTime(lastRefresh.toISOString())}
+											</span>
+										) : null}
+									</p>
+								</div>
+							</div>
+							<div className="flex gap-2 sm:gap-3">
+								<StatPill
+									label="Operacional"
+									value={
+										data?.components.filter((c) => c.status === "operational")
+											.length ?? 0
+									}
+									tone="ok"
+								/>
+								<StatPill
+									label="Degradado"
+									value={
+										data?.components.filter((c) => c.status === "degraded")
+											.length ?? 0
+									}
+									tone="warn"
+								/>
+								<StatPill
+									label="Down"
+									value={
+										data?.components.filter((c) => c.status === "down")
+											.length ?? 0
+									}
+									tone="down"
+								/>
 							</div>
 						</div>
-						<div className="flex gap-6 text-center text-sm">
-							<StatPill
-								label="Operacional"
-								value={
-									data?.components.filter((c) => c.status === "operational")
-										.length ?? 0
-								}
-								color="text-emerald-400"
-							/>
-							<StatPill
-								label="Degradado"
-								value={
-									data?.components.filter((c) => c.status === "degraded")
-										.length ?? 0
-								}
-								color="text-amber-400"
-							/>
-							<StatPill
-								label="Down"
-								value={
-									data?.components.filter((c) => c.status === "down").length ??
-									0
-								}
-								color="text-rose-400"
-							/>
-						</div>
-					</div>
-				</section>
-
-				{error ? (
-					<div className="mb-8 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-						{error}
-					</div>
-				) : null}
-
-				{groups.map((group) => {
-					const meta = GROUP_META[group];
-					const Icon = meta.icon;
-					const items =
-						data?.components.filter((c) => c.group === group) ?? [];
-					if (items.length === 0) return null;
-					return (
-						<section key={group} className="mb-10">
-							<h2 className="mb-4 flex items-center gap-2 text-lg font-medium text-zinc-300">
-								<Icon className="h-5 w-5 text-zinc-500" />
-								{meta.title}
-							</h2>
-							<div className="grid gap-3 sm:grid-cols-2">
-								{items.map((check) => (
-									<ComponentCard key={check.id} check={check} />
-								))}
-							</div>
-						</section>
-					);
-				})}
-
-				{data?.incidents && data.incidents.length > 0 ? (
-					<section className="mb-10">
-						<h2 className="mb-4 text-lg font-medium text-zinc-300">
-							Histórico recente
-						</h2>
-						<ul className="space-y-2">
-							{data.incidents.map((inc) => (
-								<li
-									key={inc.id}
-									className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-zinc-800/80 bg-zinc-900/50 px-4 py-3 text-sm"
-								>
-									<span className="font-mono text-xs text-zinc-500">
-										{formatTime(inc.at)}
-									</span>
-									<span className="font-medium text-zinc-200">
-										{inc.componentName}
-									</span>
-									<span className="text-zinc-500">
-										{STATUS_LABEL[inc.from]} →{" "}
-										<span className={STATUS_COLOR[inc.to]}>
-											{STATUS_LABEL[inc.to]}
-										</span>
-									</span>
-									{inc.message ? (
-										<span className="text-zinc-600">— {inc.message}</span>
-									) : null}
-								</li>
-							))}
-						</ul>
 					</section>
-				) : null}
 
-				<footer className="border-t border-zinc-800/80 pt-8 text-center text-xs text-zinc-600">
-					Atualização automática a cada {Math.round(pollMs / 1000)}s · API, Huet,
-					Tils, Worker, PostgreSQL, RabbitMQ, Storage
-				</footer>
+					{error ? (
+						<div className="mb-8 rounded-xl border border-[#f1c0c0] bg-[#fde8e8] px-4 py-3 text-sm text-[#b42318]">
+							{error}
+						</div>
+					) : null}
+
+					{groups.map((group) => {
+						const meta = GROUP_META[group];
+						const Icon = meta.icon;
+						const items =
+							data?.components.filter((c) => c.group === group) ?? [];
+						if (items.length === 0 && !loading) return null;
+						return (
+							<section key={group} className="mb-10">
+								<h2 className="mb-4 flex items-center gap-2 text-[15px] font-semibold tracking-tight text-studio-ink">
+									<Icon className="size-4 text-studio-teal" strokeWidth={1.75} />
+									{meta.title}
+								</h2>
+								<div className="grid gap-3 sm:grid-cols-2">
+									{items.length > 0
+										? items.map((check) => (
+												<ComponentCard key={check.id} check={check} />
+											))
+										: Array.from({ length: 2 }).map((_, i) => (
+												<div
+													key={`${group}-skeleton-${i}`}
+													className="studio-glass-card h-[5.5rem] animate-pulse bg-studio-chip/70"
+												/>
+											))}
+								</div>
+							</section>
+						);
+					})}
+
+					{data?.incidents && data.incidents.length > 0 ? (
+						<section className="mb-10">
+							<h2 className="mb-4 text-[15px] font-semibold tracking-tight text-studio-ink">
+								Histórico recente
+							</h2>
+							<ul className="space-y-2">
+								{data.incidents.map((inc) => (
+									<li
+										key={inc.id}
+										className="studio-glass-card flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-sm"
+									>
+										<span className="font-mono text-[11px] text-studio-ink-faint">
+											{formatTime(inc.at)}
+										</span>
+										<span className="font-semibold text-studio-ink">
+											{inc.componentName}
+										</span>
+										<span className="text-studio-ink-muted">
+											{STATUS_LABEL[inc.from]} →{" "}
+											<span className={STATUS_COLOR[inc.to]}>
+												{STATUS_LABEL[inc.to]}
+											</span>
+										</span>
+										{inc.message ? (
+											<span className="text-studio-ink-faint">
+												— {inc.message}
+											</span>
+										) : null}
+									</li>
+								))}
+							</ul>
+						</section>
+					) : null}
+
+					<footer className="mt-auto border-t border-studio-row-border pt-8 text-center text-[12px] text-studio-ink-faint">
+						Atualização automática a cada {Math.round(pollMs / 1000)}s · API,
+						Huet, Tils, Worker, PostgreSQL, RabbitMQ, Storage
+					</footer>
+				</main>
 			</div>
 		</div>
 	);
@@ -294,16 +330,27 @@ export function StatusDashboard() {
 function StatPill({
 	label,
 	value,
-	color,
+	tone,
 }: {
 	label: string;
 	value: number;
-	color: string;
+	tone: "ok" | "warn" | "down";
 }) {
+	const toneClass =
+		tone === "ok"
+			? "bg-[#d4f5e8] text-[#0d6a4a]"
+			: tone === "warn"
+				? "bg-[#fff0e0] text-[#8a4a12]"
+				: "bg-[#fde8e8] text-[#b42318]";
+
 	return (
-		<div>
-			<p className={`text-2xl font-semibold tabular-nums ${color}`}>{value}</p>
-			<p className="text-zinc-500">{label}</p>
+		<div
+			className={`min-w-[4.75rem] rounded-2xl px-3 py-2.5 text-center ${toneClass}`}
+		>
+			<p className="text-xl font-extrabold tabular-nums tracking-tight">
+				{value}
+			</p>
+			<p className="text-[11px] font-medium opacity-80">{label}</p>
 		</div>
 	);
 }
