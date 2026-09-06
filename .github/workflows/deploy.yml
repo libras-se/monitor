@@ -10,15 +10,20 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   IMAGE_NAME: libras-monitor
-  DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
-  DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-  DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
 
 jobs:
   build-and-push-dockerfile-image:
+    name: Build and push image
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image: ${{ steps.image.outputs.full }}
 
     steps:
       - name: Checkout repository
@@ -26,7 +31,7 @@ jobs:
 
       - name: Image reference (ghcr.io, owner lowercase)
         id: image
-        run: echo "full=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/${IMAGE_NAME}" >> $GITHUB_OUTPUT
+        run: echo "full=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -51,11 +56,38 @@ jobs:
             ${{ steps.image.outputs.full }}:latest
             ${{ steps.image.outputs.full }}:${{ github.sha }}
 
-      - name: Trigger Dokploy Deployment
-        if: ${{ env.DOKPLOY_URL != '' && env.DOKPLOY_API_KEY != '' && env.DOKPLOY_APPLICATION_ID != '' }}
+  deploy:
+    name: Trigger Dokploy deployment
+    needs: build-and-push-dockerfile-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      DOKPLOY_URL: ${{ secrets.DOKPLOY_URL }}
+      DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+      DOKPLOY_APPLICATION_ID: ${{ secrets.DOKPLOY_APPLICATION_ID }}
+
+    steps:
+      - name: Check deployment configuration
+        id: config
         run: |
-          curl --fail-with-body -X POST "${DOKPLOY_URL%/}/api/application.deploy" \
-            -H "accept: application/json" \
-            -H "x-api-key: ${DOKPLOY_API_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"applicationId\":\"${DOKPLOY_APPLICATION_ID}\"}"
+          if [[ -n "${DOKPLOY_URL}" && -n "${DOKPLOY_API_KEY}" && -n "${DOKPLOY_APPLICATION_ID}" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Dokploy deployment is not configured for monitor; the image was published but will not be deployed"
+          fi
+
+      - name: Trigger Dokploy deployment
+        if: ${{ steps.config.outputs.configured == 'true' }}
+        run: |
+          set -euo pipefail
+          echo "::notice::Deploying ${{ needs.build-and-push-dockerfile-image.outputs.image }}:${GITHUB_SHA} through Dokploy"
+          curl \
+            --fail-with-body --silent --show-error \
+            --connect-timeout 10 --max-time 45 \
+            --write-out $'\nDokploy HTTP %{http_code} in %{time_total}s\n' \
+            --request POST "${DOKPLOY_URL%/}/api/application.deploy" \
+            --header "accept: application/json" \
+            --header "x-api-key: ${DOKPLOY_API_KEY}" \
+            --header "Content-Type: application/json" \
+            --data "{\"applicationId\":\"${DOKPLOY_APPLICATION_ID}\"}"
